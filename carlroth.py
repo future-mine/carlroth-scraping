@@ -101,6 +101,7 @@ def getProductSdsInfo(file_path):
             interpreter.process_page(page)
 
     content = output_string.getvalue()
+    
     pattern0 = re.compile(r'[^\+]H[1-9][1-9][1-9][^\+]')
     pattern1 = re.compile(r'H[1-9][1-9][1-9]')
     pattern2 = re.compile(r'H[1-9][1-9][1-9][\+]H[1-9][1-9][1-9]')
@@ -114,10 +115,43 @@ def getProductSdsInfo(file_path):
     # sds_pdf_Hazards_identification = list(set(sds_pdf_Hazards_identification))
     harzards_arr = list(set(harzards_arr))
     sds_pdf_Hazards_identification = ', '.join(harzards_arr)
-    sds_pdf_product_name = ''
-    sds_pdf_published_date = ''
-    sds_pdf_revision_date = ''
-    sds_pdf_manufacture_name = ''
+    
+    try:
+        pattern = re.compile(r'Identifikasjon av stoffet\n[^\n]+\n')
+        ptr = re.findall(pattern, content)
+        ptr1 = ptr[0].split('\n')[1]
+        print(ptr)
+        sds_pdf_product_name = ptr1
+    except:
+        sds_pdf_product_name = None
+    try:
+        pattern = re.compile(r'dato for utarbeiding: [0-9][0-9].[0-9][0-9].[0-2][0-9][0-9][0-9]')
+        ptr = re.findall(pattern, content)
+        ptr1 = ptr[0].split(': ')[1]
+        ptr2 = ptr1.split('.')
+        print(ptr)
+        sds_pdf_published_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+    except:
+        sds_pdf_published_date = None
+
+
+    try:
+        pattern = re.compile(r'Revidert: [0-9][0-9].[0-9][0-9].[0-2][0-9][0-9][0-9]')
+        ptr = re.findall(pattern, content)
+        print(ptr)
+        ptr1 = ptr[0].split(': ')[1]
+        ptr2 = ptr1.split('.')
+        sds_pdf_revision_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+    except:
+        sds_pdf_revision_date = None
+
+
+    pattern = re.compile(r'Opplysninger om leverandøren av sikkerhetsdatabladet\n[^\n]+\n')
+    ptr = re.findall(pattern, content)
+    ptr1 = ptr[0].split('\n')[1]
+    print(ptr)
+    sds_pdf_manufacture_name = ptr1
+
     return [sds_pdf_product_name,	sds_pdf_published_date,	sds_pdf_revision_date,	sds_pdf_manufacture_name,	sds_pdf_Hazards_identification]
 
 
@@ -145,9 +179,13 @@ def getProductsUrl(site_links):
                         productdiv.find(
                             "a", {"class": "btn btn-default btn-block"}).get('href')
                     productsurl_arr.append(producturl)
+                # break
             try:
                 # nextbut = driver.find_element_by_xpath('/html/body/main/div[3]/div[2]/div[2]/div/div/div[1]/div/div[2]/div/div[4]/ul/li[7]/a')
                 nextbut = driver.find_element_by_class_name('pagination-next')
+                print(nextbut.get_attribute('class').split())
+                if 'disabled' in nextbut.get_attribute('class').split():
+                    break
                 nextbut.click()
             except:
                 break
@@ -169,11 +207,12 @@ def getProductInfo(link):
     except:
         time.sleep(3)
     # driver.execute_script("window.scrollTo(0, 2000)")
-    time.sleep(3)
-
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    title = soup.find('div', {'class': 'product-details'}).text
+    soup = BeautifulSoup(driver.page_source, 'html.parser')    
+    title = soup.find('div', {'class': 'product-details'}).find('strong').find('h1').text
     brand = soup.find('div', {'class': 'brand-name'}).text
+    print('title', title)
+
+    time.sleep(3)
 
     # fordownloadbutt = []
     # fordownloadbutt.append(driver.find_element_by_id('accessibletabscontent0-0'))
@@ -226,13 +265,13 @@ def getProductInfo(link):
     except:
         return None
 
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+
 
     pdffilename = pdfurl.split('/')[4].split('?')[0]
+    print(pdfurl)
+
     Sds_info = getProductSdsInfo('downloads/' + pdffilename)
     zipfilename = compressToZip(pdffilename)
-    print(pdffilename)
-    print(pdfurl)
     source = 'carlroth.py'
     manufacturer_name = 'carlroth'
     product_url = link
@@ -240,6 +279,7 @@ def getProductInfo(link):
     sds_pdf = pdfurl
     sds_source = link
     sds_language = "Norwegian"
+
     product_name = title + brand
 
     sds_filename_in_zip = zipfilename
@@ -255,11 +295,12 @@ def getProductInfo(link):
     return productinfo
 
 
-site_links = ['https://www.carlroth.com/com/en/life-science/c/web_folder_260527',
+site_links = ['https://www.carlroth.com/com/en/performance-materials/c/web_folder_984827',
+              'https://www.carlroth.com/com/en/life-science/c/web_folder_260527',
               'https://www.carlroth.com/com/en/chemikalien/c/web_folder_260523',
               'https://www.carlroth.com/com/en/chemikalien/c/web_folder_260523',
               'https://www.carlroth.com/com/en/applications/c/web_folder_758652',
-              'https://www.carlroth.com/com/en/performance-materials/c/web_folder_984827',
+              
               ]
 products_url_arr = getProductsUrl(site_links)
 print(products_url_arr)
