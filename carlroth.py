@@ -69,35 +69,61 @@ def writeUrls(item_desc):
         print("There was an error writing to the CSV data file.")
 
 
+
 def writeProductsInfo(productsinfo):
-    filename = "ProductsInfo.csv"
+    filename = "carlroth.csv"
+    file_exists = os.path.isfile(filename)
+    header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
+              'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename',	'crawl_date']
+    with open(filename, 'a', encoding="utf-8-sig") as csvfile:
+        # writer = csv.writer(csvfile,quotechar='|',  quoting=csv.QUOTE_ALL)
+        writer = csv.DictWriter(csvfile, delimiter=',', lineterminator='\n',fieldnames=header)
 
-    try:
-        open(filename, 'r')
-    except:
-        header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
-                  'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename',	'crawl_date']
-        with open(filename, 'a', encoding="utf-8", newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(header)
+        if not file_exists:
+            writer.writeheader()  # file doesn't exist yet, write a header
+        for row in productsinfo:
+            writer.writerow({
+              'source':row[0],	'manufacturer_name':row[1], 'product_url':row[2],	'product_article_id':row[3],	'sds_pdf':row[4],	'sds_source':row[5],	'sds_language':row[6],	'product_name':row[7],	'sds_pdf_product_name':row[8], 'sds_pdf_published_date':row[9],	'sds_pdf_revision_date':row[10],	'sds_pdf_manufacture_name':row[11],	'sds_pdf_Hazards_identification':row[12],	'sds_filename':row[13],	'crawl_date':row[14]
+            })
 
-    with open(filename, 'a', encoding="utf-8", newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerows(productsinfo)
 
-    # with open('quotes.csv', 'w', newline='') as file:
-    #     writer = csv.writer(
-    #         file, quoting=csv.QUOTE_NONNUMERIC, delimiter='|')
-    #     writer.writerows(row_list)
-        # try:
-        #     f = open(filename, "a")
-        #     for info in productsinfo:
-        #         productinfo = ';'.join(info)
-        #         print(productinfo)
-        #         f.write(productinfo + "\n")
-        #     f.close()
-        # except:
-        #     print("There was an error writing to the CSV data file.")
+
+
+
+
+
+# def writeProductsInfo(productsinfo):
+#     filename = "carlroth.csv"
+
+#     try:
+#         open(filename, 'r', encoding="utf-8-sig")
+#     except:
+#         header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
+#                   'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename',	'crawl_date']
+#         with open(filename, 'a', encoding="utf-8-sig", newline='') as csvfile:
+#             # writer = csv.writer(csvfile,quotechar='',  quoting=csv.QUOTE_ALL)
+#             writer = csv.writer(csvfile,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            
+#             writer.writerow(header)
+
+#     with open(filename, 'a', encoding="utf-8-sig", newline='') as csvfile:
+#         # writer = csv.writer(csvfile,quotechar='|',  quoting=csv.QUOTE_ALL)
+#         writer = csv.writer(csvfile,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+#         writer.writerows(productsinfo)
+
+#     # with open('quotes.csv', 'w', newline='') as file:
+#     #     writer = csv.writer(
+#     #         file, quoting=csv.QUOTE_NONNUMERIC, delimiter='|')
+#     #     writer.writerows(row_list)
+#         # try:
+#         #     f = open(filename, "a")
+#         #     for info in productsinfo:
+#         #         productinfo = ';'.join(info)
+#         #         print(productinfo)
+#         #         f.write(productinfo + "\n")
+#         #     f.close()
+#         # except:
+#         #     print("There was an error writing to the CSV data file.")
 
 
 def getProductSdsInfo(file_path):
@@ -132,9 +158,13 @@ def getProductSdsInfo(file_path):
         # pattern = re.compile(r'^Frivillig sikkerhetsinformasjon basert på\nsikkerhetsbladformat iht. forordning (EF) nr. 1907/2006\n(REACH)\n[^n]\n')
         # ptr = re.findall(pattern, content)
         # ptr1 = ptr[0].split('\n')[1]
+        product_num = file_path.split('-')[1]
         ptr2 = content.split('\n')
-        print(ptr2[3], ptr2[4])
-        sds_pdf_product_name = ptr2[4]
+        ind = ptr2.index(product_num) - 1
+        print(ind, ptr2[ind])
+        for i in range(100):
+            print(i,'  ', ptr2[i])
+        sds_pdf_product_name = ptr2[ind]
     except:
         sds_pdf_product_name = None
     try:
@@ -314,7 +344,7 @@ def getProductInfo(link):
     file_path = 'downloads/' + pdffilename
     while True:
         try:
-            open(file_path, 'rb')
+            open(file_path, 'r')
             break
         except:
             time.sleep(1)
@@ -329,7 +359,7 @@ def getProductInfo(link):
     sds_source = link
     sds_language = "Norwegian"
 
-    product_name = title + brand
+    product_name = title + ' ' + brand
 
     sds_filename_in_zip = file_path
 
@@ -358,7 +388,7 @@ print("All products number",len(productsinfo_arr))
 id = 0
 for link in products_url_arr:
     product_info = getProductInfo(link)
-    if id > 4:
+    if id > 2:
         break
     if product_info is None:
         print(link)
