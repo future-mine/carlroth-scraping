@@ -61,14 +61,15 @@ def writeUrls(item_desc):
 def writeProductsInfo(productsinfo):
     filename = "ProductsInfo.csv"
 
-    # row_list = [
-    #     ["SN", "Name", "Quotes"],
-    #     [1, "Buddha", "What we think we become"],
-    #     [2, "Mark Twain", "Never regret anything that made you smile"],
-    #     [3, "Oscar Wilde", "Be yourself everyone else is already taken"]
-    # ]
+    try:
+        open(filename, 'r', encoding="utf-8")
+    except:
+        header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
+                  'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename_in_zip',	'crawl_date']
+        with open(filename, 'a', encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(header)
 
-    # myData = [[1, 2, 3], ['Good Morning', 'Good Evening', 'Good Afternoon']]
     with open(filename, 'a', encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows(productsinfo)
@@ -132,7 +133,6 @@ def compressToZip(filename):
 def getProductsUrl(site_links):
     productsurl_arr = []
     for link in site_links:
-        link = 'https://www.carlroth.com/com/en/life-science/c/web_folder_260527'
         driver.get(link)
         while True:
             soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -145,16 +145,14 @@ def getProductsUrl(site_links):
                         productdiv.find(
                             "a", {"class": "btn btn-default btn-block"}).get('href')
                     productsurl_arr.append(producturl)
-                    break
             try:
                 # nextbut = driver.find_element_by_xpath('/html/body/main/div[3]/div[2]/div[2]/div/div/div[1]/div/div[2]/div/div[4]/ul/li[7]/a')
                 nextbut = driver.find_element_by_class_name('pagination-next')
                 nextbut.click()
-                break
             except:
                 break
 
-        break
+        # break
 
     return productsurl_arr
 
