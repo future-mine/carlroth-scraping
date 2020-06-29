@@ -30,9 +30,20 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
 
+
+def getDownloadsFolderPath():
+    currentpath = os.path.realpath(__file__)
+    print(currentpath)
+    # add_to_startup(currentpath)
+
+    patharr = currentpath.split('\\')
+    patharr[len(patharr)-1] = 'downloads'
+    ptr = ('\\').join(patharr)
+    return ptr
+
 def initDriver():
     options = webdriver.ChromeOptions()
-    download_dir = 'E:\\Studying_now\\futurestudying\\workIgor\\Erlend\\emdmillipore\\carlroth\\downloads'
+    download_dir = getDownloadsFolderPath()
     profile = {"plugins.plugins_list": [{"enabled": False, "name": "Chrome PDF Viewer"}],
                "plugins.always_open_pdf_externally": True,
                "download.default_directory": download_dir}
@@ -62,16 +73,16 @@ def writeProductsInfo(productsinfo):
     filename = "ProductsInfo.csv"
 
     try:
-        open(filename, 'r', encoding="utf-8")
+        open(filename, 'r')
     except:
         header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
-                  'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename_in_zip',	'crawl_date']
-        with open(filename, 'a', encoding="utf-8") as csvfile:
-            writer = csv.writer(csvfile)
+                  'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename',	'crawl_date']
+        with open(filename, 'a', encoding="utf-8", newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(header)
 
-    with open(filename, 'a', encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
+    with open(filename, 'a', encoding="utf-8", newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
         writer.writerows(productsinfo)
 
     # with open('quotes.csv', 'w', newline='') as file:
@@ -116,12 +127,14 @@ def getProductSdsInfo(file_path):
     harzards_arr = list(set(harzards_arr))
     sds_pdf_Hazards_identification = ', '.join(harzards_arr)
     
+    # print(content)
     try:
-        pattern = re.compile(r'Identifikasjon av stoffet\n[^\n]+\n')
-        ptr = re.findall(pattern, content)
-        ptr1 = ptr[0].split('\n')[1]
-        print(ptr)
-        sds_pdf_product_name = ptr1
+        # pattern = re.compile(r'^Frivillig sikkerhetsinformasjon basert på\nsikkerhetsbladformat iht. forordning (EF) nr. 1907/2006\n(REACH)\n[^n]\n')
+        # ptr = re.findall(pattern, content)
+        # ptr1 = ptr[0].split('\n')[1]
+        ptr2 = content.split('\n')
+        print(ptr2[3], ptr2[4])
+        sds_pdf_product_name = ptr2[4]
     except:
         sds_pdf_product_name = None
     try:
@@ -168,29 +181,36 @@ def getProductsUrl(site_links):
     productsurl_arr = []
     for link in site_links:
         driver.get(link)
+        id = 0
         while True:
+            if id > 1:
+                break
+            id += 1
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             rowdiv_arr = soup.find_all(
                 "div", {"class": "row hidden-xs hidden-sm"})
             for rowdiv in rowdiv_arr:
+                  
                 productdiv_arr = rowdiv.find_all("div", {"class": "col-md-4"})
                 for productdiv in productdiv_arr:
                     producturl = 'https://www.carlroth.com' + \
                         productdiv.find(
                             "a", {"class": "btn btn-default btn-block"}).get('href')
-                    productsurl_arr.append(producturl)
+                    productsurl_arr.append(producturl)         
+          ####
                 # break
-            try:
-                # nextbut = driver.find_element_by_xpath('/html/body/main/div[3]/div[2]/div[2]/div/div/div[1]/div/div[2]/div/div[4]/ul/li[7]/a')
-                nextbut = driver.find_element_by_class_name('pagination-next')
-                print(nextbut.get_attribute('class').split())
-                if 'disabled' in nextbut.get_attribute('class').split():
-                    break
-                nextbut.click()
-            except:
+            nextbut = driver.find_element_by_class_name('pagination-next')
+            print(nextbut.get_attribute('class').split())
+          
+          ###
+            # break
+          
+          
+            if 'disabled' in nextbut.get_attribute('class').split():
                 break
+            nextbut.click()
 
-        # break
+        break
 
     return productsurl_arr
 
@@ -206,59 +226,81 @@ def getProductInfo(link):
         time.sleep(1)
     except:
         time.sleep(3)
+        
+    time.sleep(2)
     # driver.execute_script("window.scrollTo(0, 2000)")
-    soup = BeautifulSoup(driver.page_source, 'html.parser')    
-    title = soup.find('div', {'class': 'product-details'}).find('strong').find('h1').text
-    brand = soup.find('div', {'class': 'brand-name'}).text
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    try:    
+        title = soup.find('div', {'class': 'product-details'}).find('strong').find('h1').text
+    except:
+        title = ''
+
+    try:
+        brand = soup.find('div', {'class': 'brand-name'}).text
+    except:
+        brand = ''
+    
     print('title', title)
 
     time.sleep(3)
+    
 
-    # fordownloadbutt = []
-    # fordownloadbutt.append(driver.find_element_by_id('accessibletabscontent0-0'))
-    # fordownloadbutt.append(driver.find_element_by_id('accessibletabscontent0-1'))
-    # for butit in fordownloadbutt:
-    #   print(butit.text)
-    #   if 'Downloads' in butit.text:
-    #     print('Downloads  ', butit)
-    #     butit.click()
-    # driver.find_elements_by_xpath(
-    #     "//h2[contains(text(), Downloads')]").click()
-    # driver.find_element(By.XPATH, '//*[text()="Downloads"]').click()
-    # print(driver.find_element_by_id('accessibletabscontent0-0').text)
-    # if 'Downloads' in driver.find_element_by_id('accessibletabscontent0-0').text:
-    #     print('click download')
-    #     driver.find_element_by_id('accessibletabscontent0-0').click()
-    # else:
-    #     if 'Downloads' in driver.find_element_by_id('accessibletabscontent0-1').text:
-    #         driver.find_element_by_id('accessibletabscontent0-1').click()
+        
 
-    # driver.find_element_by_id('accessibletabscontent0-0').click()
-    # selectcountry = driver.find_element_by_id('secDataCountry')
-    # dropdown = Select(selectcountry)
-    # dropdown.select_by_visible_text("Norway")
-    # # downloadbutt = driver.find_element_by_xpath("/html/body/main/div[3]/div[5]/div/div[4]/div[2]/div[41]/div/a")
-    # downloadbutts = driver.find_elements_by_xpath(
-    #     "//*[contains(text(), 'Norway')]")
-    # downloadbutt = downloadbutts[len(downloadbutts)-1]
-    # # print(downloadbutt)
-    # pdfurl = downloadbutt.find_element_by_xpath("..").get_attribute('href')
+        
+    # parent = driver.find_element_by_id('accessibletabscontent0-0')
+    # try:
+    #     selectcountry = parent.find_element_by_id('secDataCountry')
+    #     if 'active' in parent.get_attribute('class').split():
+    #         pass
+    #     else:
+    #         parent.click()
+    # except:
+    #     parent = driver.find_element_by_id('accessibletabscontent0-1')
+    #     selectcountry = parent.find_element_by_id('secDataCountry')
+    #     if 'active' in parent.get_attribute('class').split():
+    #         pass
+    #     else:
+    #         parent.click()
+
+    # print(type(selectcountry))
+    # print(selectcountry is None)
+    # if (selectcountry is None):
+    #     print('init pass')
+    #     parent = driver.find_element_by_id('accessibletabscontent0-0').click()
+    #     selectcountry = parent.find_element_by_id('secDataCountry')
+    #     if(selectcountry is None):
+    #         print('click button')            
+    #         parent = driver.find_element_by_id('accessibletabscontent0-1')
+    #         selectcountry = parent.find_elements_by_id('secDataCountry')
+    #         if(selectcountry is None):
+    #             driver.find_element_by_id('accessibletabscontent0-1').click()
+    
 
     try:
-        driver.find_element_by_id('accessibletabscontent0-1').click()
+        test = driver.find_element_by_xpath('//*[@id="accessibletabscontent0-0"]/a')
+        if 'Downloads' in test.text:
+            element = driver.find_element_by_id('accessibletabscontent0-0')
+            if 'active' in element.get_attribute('class').split():
+                pass
+            else:
+                element.click()
+        else:
+            test = driver.find_element_by_xpath('//*[@id="accessibletabscontent0-1"]/a')
+            if 'Downloads' in test.text:
+                element = driver.find_element_by_id('accessibletabscontent0-1')
+                if 'active' in element.get_attribute('class').split():
+                    pass
+                else:
+                    element.click()
+        
         selectcountry = driver.find_element_by_id('secDataCountry')
         dropdown = Select(selectcountry)
         dropdown.select_by_visible_text("Norway")
-        # downloadbutt = driver.find_element_by_xpath("/html/body/main/div[3]/div[5]/div/div[4]/div[2]/div[41]/div/a")
         downloadbutts = driver.find_elements_by_xpath(
             "//*[contains(text(), 'Norway')]")
         downloadbutt = downloadbutts[len(downloadbutts)-1]
-        # print(downloadbutt)
         pdfurl = downloadbutt.find_element_by_xpath("..").get_attribute('href')
-        # soup = BeautifulSoup(driver.page_source, 'html.parser')
-        # pdfurl = soup.find('div', {'data-component-uuiddata-component-uuiddata-component-uuid':'NO'}).find('a').['href']
-
-        # print(pdfurl)
         downloadbutt.click()
         time.sleep(3)
         print('success download')
@@ -269,9 +311,16 @@ def getProductInfo(link):
 
     pdffilename = pdfurl.split('/')[4].split('?')[0]
     print(pdfurl)
+    file_path = 'downloads/' + pdffilename
+    while True:
+        try:
+            open(file_path, 'rb')
+            break
+        except:
+            time.sleep(1)
 
-    Sds_info = getProductSdsInfo('downloads/' + pdffilename)
-    zipfilename = compressToZip(pdffilename)
+    Sds_info = getProductSdsInfo(file_path)
+    # zipfilename = compressToZip(pdffilename)
     source = 'carlroth.py'
     manufacturer_name = 'carlroth'
     product_url = link
@@ -282,7 +331,7 @@ def getProductInfo(link):
 
     product_name = title + brand
 
-    sds_filename_in_zip = zipfilename
+    sds_filename_in_zip = file_path
 
     # today = date.today()
     tz = pytz.timezone('Europe/Oslo')
@@ -305,22 +354,23 @@ site_links = ['https://www.carlroth.com/com/en/performance-materials/c/web_folde
 products_url_arr = getProductsUrl(site_links)
 print(products_url_arr)
 productsinfo_arr = []
+print("All products number",len(productsinfo_arr))
+id = 0
 for link in products_url_arr:
     product_info = getProductInfo(link)
+    if id > 4:
+        break
     if product_info is None:
         print(link)
     else:
         productsinfo_arr.append(product_info)
-print(len(productsinfo_arr))
-writeProductsInfo(productsinfo_arr)
+        print(product_info)
+    print('products number', id)
+    id += 1
+    
 
-# driver.get('https://www.carlroth.com/com/en/general-reagents/dimethyl-sulphoxide-%28dmso%29/p/4720.3')
-# ptr = driver.find_elements_by_xpath("//*[contains(text(), 'Subtotal:')]")
-# print(ptr)
+writeUrls(productsinfo_arr)
+writeProductsInfo(productsinfo_arr)
 time.sleep(3)
 driver.close()
 
-# driver.close()
-# source	manufacturer_name	product_url	product_article_id	sds_pdf	sds_source	sds_language	product_name	sds_pdf_product_name	sds_pdf_published_date	sds_pdf_revision_date	sds_pdf_manufacture_name	sds_pdf_Hazards_identification	sds_filename_in_zip	crawl_date
-
-# Megaflis.py	Megaflis	https://megaflis.no/plumbo-rorvask-1-1kg.html	7.02E+12	https://megaflis.no/media/files/3857/PLUMBO_R_RVASK_1.pdf	https://megaflis.no/plumbo-rorvask-1-1kg.html	Norwegian	Plumbo rørvask 1.1kg	PLUMBO RØRVASK	11/8/2012	6/28/2017	KREFTING & CO. AS	H314,H318,H290	/megaflis/xyz00001.pdf	6/26/2020
