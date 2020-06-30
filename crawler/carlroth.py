@@ -388,8 +388,8 @@ print("All products number",len(productsinfo_arr))
 id = 0
 for link in products_url_arr:
     product_info = getProductInfo(link)
-    if id > 2:
-        break
+    # if id > 2:
+    #     break
     if product_info is None:
         print(link)
     else:

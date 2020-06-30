@@ -1,7 +1,0 @@
-bs4
-selenium
-webdriver_manager
-datetime
-pytz
-PyPDF2
-pdfminer
