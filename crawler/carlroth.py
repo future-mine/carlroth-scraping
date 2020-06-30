@@ -31,19 +31,19 @@ from pdfminer.pdfparser import PDFParser
 
 
 
-def getDownloadsFolderPath():
+def getDownloadsFolderPath(subpath):
     currentpath = os.path.realpath(__file__)
     print(currentpath)
     # add_to_startup(currentpath)
 
     patharr = currentpath.split('\\')
-    patharr[len(patharr)-1] = 'downloads'
-    ptr = ('\\').join(patharr)
+    patharr[len(patharr)-2] = subpath
+    ptr = ('\\').join(patharr[0:(len(patharr)-1)])
     return ptr
 
 def initDriver():
     options = webdriver.ChromeOptions()
-    download_dir = getDownloadsFolderPath()
+    download_dir = getDownloadsFolderPath('sds')
     profile = {"plugins.plugins_list": [{"enabled": False, "name": "Chrome PDF Viewer"}],
                "plugins.always_open_pdf_externally": True,
                "download.default_directory": download_dir}
@@ -71,7 +71,7 @@ def writeUrls(item_desc):
 
 
 def writeProductsInfo(productsinfo):
-    filename = "carlroth.csv"
+    filename = "../carlroth.csv"
     file_exists = os.path.isfile(filename)
     header = ['source',	'manufacturer_name', 'product_url',	'product_article_id',	'sds_pdf',	'sds_source',	'sds_language',	'product_name',	'sds_pdf_product_name',
               'sds_pdf_published_date',	'sds_pdf_revision_date',	'sds_pdf_manufacture_name',	'sds_pdf_Hazards_identification',	'sds_filename',	'crawl_date']
@@ -139,19 +139,47 @@ def getProductSdsInfo(file_path):
 
     content = output_string.getvalue()
     
-    pattern0 = re.compile(r'[^\+]H[1-9][1-9][1-9][^\+]')
-    pattern1 = re.compile(r'H[1-9][1-9][1-9]')
-    pattern2 = re.compile(r'H[1-9][1-9][1-9][\+]H[1-9][1-9][1-9]')
-    harzards_arr = []
-    initarrforfirst = re.findall(pattern0, content)
-    for init in initarrforfirst:
-        final = re.findall(pattern1, init)[0]
-        harzards_arr.append(final)
-    secondarr = re.findall(pattern2, content)
-    harzards_arr.extend(secondarr)
+    # pattern0 = re.compile(r'[^\+]H[1-9][1-9][1-9][^\+]')
+    # pattern1 = re.compile(r'H[1-9][1-9][1-9]')
+    # pattern2 = re.compile(r'H[1-9][1-9][1-9][\+]H[1-9][1-9][1-9]')
+    # harzards_arr = []
+    # initarrforfirst = re.findall(pattern0, content)
+    # for init in initarrforfirst:
+    #     final = re.findall(pattern1, init)[0]
+    #     harzards_arr.append(final)
+    # secondarr = re.findall(pattern2, content)
+    # harzards_arr.extend(secondarr)
+    # # sds_pdf_Hazards_identification = list(set(sds_pdf_Hazards_identification))
+    # harzards_arr = list(set(harzards_arr))
+    # sds_pdf_Hazards_identification = ', '.join(harzards_arr)
+  
+
+    ptr = content.split('\n')
+    for i in range(200):
+        print(i, ' ', ptr[i])
+    ind1 = ptr.index('2.2 Merkingselementer')
+    ind2 = ptr.index('2.3')
+    ptr1 = ptr[ind1:ind2]
+    print(ptr1)
+    
+    
+    
+    # pattern0 = re.compile(r'[^\+]H[1-9][1-9][1-9][^\+]')
+    pattern1 = re.compile(r'H[0-9][0-9][0-9]')
+    pattern2 = re.compile(r'H[0-9][0-9][0-9][\+]H[0-9][0-9][0-9]')
+    Hone = list(filter(pattern1.match, ptr1))
+    Hplus = list(filter(pattern2.match, ptr1))
+    Hone.extend(Hplus)
+    print(Hone)
+
     # sds_pdf_Hazards_identification = list(set(sds_pdf_Hazards_identification))
-    harzards_arr = list(set(harzards_arr))
-    sds_pdf_Hazards_identification = ', '.join(harzards_arr)
+    harzards_arr = Hone
+    sds_pdf_Hazards_identification = ', '.join(harzards_arr)  
+    if (len(Hone) == 0):
+        print ('no math')
+        sds_pdf_Hazards_identification = ptr1[3]
+  
+  
     
     # print(content)
     try:
@@ -171,9 +199,10 @@ def getProductSdsInfo(file_path):
         pattern = re.compile(r'dato for utarbeiding: [0-9][0-9].[0-9][0-9].[0-2][0-9][0-9][0-9]')
         ptr = re.findall(pattern, content)
         ptr1 = ptr[0].split(': ')[1]
-        ptr2 = ptr1.split('.')
-        print(ptr)
-        sds_pdf_published_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+        # ptr2 = ptr1.split('.')
+        # print(ptr)
+        # sds_pdf_published_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+        sds_pdf_published_date = ptr1
     except:
         sds_pdf_published_date = None
 
@@ -183,8 +212,9 @@ def getProductSdsInfo(file_path):
         ptr = re.findall(pattern, content)
         print(ptr)
         ptr1 = ptr[0].split(': ')[1]
-        ptr2 = ptr1.split('.')
-        sds_pdf_revision_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+        # ptr2 = ptr1.split('.')
+        # sds_pdf_revision_date = '{}/{}/{}'.format(ptr2[0], ptr2[1], ptr2[2])
+        sds_pdf_revision_date = ptr1
     except:
         sds_pdf_revision_date = None
 
@@ -194,17 +224,18 @@ def getProductSdsInfo(file_path):
     ptr1 = ptr[0].split('\n')[1]
     print(ptr)
     sds_pdf_manufacture_name = ptr1
-
+    
+    print([sds_pdf_product_name,	sds_pdf_published_date,	sds_pdf_revision_date,	sds_pdf_manufacture_name,	sds_pdf_Hazards_identification])
     return [sds_pdf_product_name,	sds_pdf_published_date,	sds_pdf_revision_date,	sds_pdf_manufacture_name,	sds_pdf_Hazards_identification]
 
 
 def compressToZip(filename):
     zipname = filename.split('.')[0]+'.zip'
     zf = zipfile.ZipFile(
-        'downloads/'+zipname, "w", zipfile.ZIP_DEFLATED)
-    zf.write('downloads/'+filename, filename)
+        './downloads/'+zipname, "w", zipfile.ZIP_DEFLATED)
+    zf.write('./downloads/'+filename, filename)
     zf.close()
-    return 'downloads/'+zipname
+    return './downloads/'+zipname
 
 
 def getProductsUrl(site_links):
@@ -228,12 +259,11 @@ def getProductsUrl(site_links):
                             "a", {"class": "btn btn-default btn-block"}).get('href')
                     productsurl_arr.append(producturl)         
           ####
-                # break
+            break
             nextbut = driver.find_element_by_class_name('pagination-next')
             print(nextbut.get_attribute('class').split())
           
           ###
-            # break
           
           
             if 'disabled' in nextbut.get_attribute('class').split():
@@ -272,40 +302,9 @@ def getProductInfo(link):
     
     print('title', title)
 
-    time.sleep(3)
-    
+    time.sleep(3)      
 
-        
 
-        
-    # parent = driver.find_element_by_id('accessibletabscontent0-0')
-    # try:
-    #     selectcountry = parent.find_element_by_id('secDataCountry')
-    #     if 'active' in parent.get_attribute('class').split():
-    #         pass
-    #     else:
-    #         parent.click()
-    # except:
-    #     parent = driver.find_element_by_id('accessibletabscontent0-1')
-    #     selectcountry = parent.find_element_by_id('secDataCountry')
-    #     if 'active' in parent.get_attribute('class').split():
-    #         pass
-    #     else:
-    #         parent.click()
-
-    # print(type(selectcountry))
-    # print(selectcountry is None)
-    # if (selectcountry is None):
-    #     print('init pass')
-    #     parent = driver.find_element_by_id('accessibletabscontent0-0').click()
-    #     selectcountry = parent.find_element_by_id('secDataCountry')
-    #     if(selectcountry is None):
-    #         print('click button')            
-    #         parent = driver.find_element_by_id('accessibletabscontent0-1')
-    #         selectcountry = parent.find_elements_by_id('secDataCountry')
-    #         if(selectcountry is None):
-    #             driver.find_element_by_id('accessibletabscontent0-1').click()
-    
 
     try:
         test = driver.find_element_by_xpath('//*[@id="accessibletabscontent0-0"]/a')
@@ -332,21 +331,35 @@ def getProductInfo(link):
         downloadbutt = downloadbutts[len(downloadbutts)-1]
         pdfurl = downloadbutt.find_element_by_xpath("..").get_attribute('href')
         downloadbutt.click()
-        time.sleep(3)
+        
+        
+        
         print('success download')
     except:
         return None
 
+    # while True:
+    #     if id > 10:
+    #         return None     
+    #     time.sleep(0.4)
+    #     flag = False      
+    #     for fname in os.listdir('../sds'):
+    #         if fname.endswith('.crdownload'):
+    #             flag = True
+    #     if(flag):
+    #         time.sleep(0.4)
+    #         break
 
 
     pdffilename = pdfurl.split('/')[4].split('?')[0]
     print(pdfurl)
-    file_path = 'downloads/' + pdffilename
+    file_path = '../sds/' + pdffilename
     while True:
         try:
             open(file_path, 'r')
             break
         except:
+            print('wait')
             time.sleep(1)
 
     Sds_info = getProductSdsInfo(file_path)
@@ -361,12 +374,12 @@ def getProductInfo(link):
 
     product_name = title + ' ' + brand
 
-    sds_filename_in_zip = file_path
+    sds_filename_in_zip = pdffilename
 
     # today = date.today()
     tz = pytz.timezone('Europe/Oslo')
     today = datetime.now(tz=tz)
-    crawl_date = today.strftime("%d/%m/%Y")
+    crawl_date = today.strftime("%d.%m.%Y")
     productinfo = [source, manufacturer_name, product_url,
                    product_article_id,	sds_pdf, sds_source,	sds_language,	product_name]
     productinfo.extend(Sds_info)
@@ -404,3 +417,8 @@ writeProductsInfo(productsinfo_arr)
 time.sleep(3)
 driver.close()
 
+
+# check = 'SDB-2631-NO-NO.pdf'
+# filepath = '../sds/' + check
+# # filepath = '../sds/Gjøco Antisopp.pdf'
+# getProductSdsInfo(filepath)
